@@ -1,7 +1,9 @@
-import 'package:aluminia/Home.dart';
 import 'package:aluminia/Screens/OnBoarding/Login.dart';
+import 'package:aluminia/base.dart';
+import 'package:aluminia/const.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -51,9 +53,9 @@ class _AluminiaState extends State<Aluminia> {
     return MaterialApp(
       home: Scaffold(
         backgroundColor: Colors.white,
-        body: loading ? Center(
-          child: CircularProgressIndicator()
-        ) : login ? Home() : Login(),
+        body: loading ? SpinKitDoubleBounce(
+          color: blu,
+        )  : login ? Base() : Login()
       ),
     );
   }
