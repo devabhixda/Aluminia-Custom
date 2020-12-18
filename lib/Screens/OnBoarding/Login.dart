@@ -1,6 +1,6 @@
+import 'package:aluminia/Base.dart';
 import 'package:aluminia/Home.dart';
 import 'package:aluminia/Screens/OnBoarding/SignUp.dart';
-import 'package:aluminia/Screens/OnBoarding/UserInfo.dart';
 import 'package:aluminia/Services/auth.dart';
 import 'package:aluminia/const.dart';
 import 'package:flutter/material.dart';
@@ -59,14 +59,35 @@ class _LoginState extends State<Login> {
                 setState(() {
                   loading = true;
                 }),
-                auth.signIn(email, password),
-                auth.getUser(email).then(
-                  (bool exists) {
-                    if(exists)
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
-                    else
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => UserInfo()));
-                  }
+                auth.signIn(email.split("@")[0], password).then(
+                  (bool res) {
+                    if(res) {
+                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Base()));
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text("Password incorrect",
+                            ),
+                            content: Text("Your password looks incorrect, please check"),
+                            actions: [
+                              FlatButton(
+                                child: Text("OK"
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              )
+                            ],
+                          );
+                        },
+                      );
+                      setState(() {
+                        loading = false;
+                      });
+                    }
+                  } 
                 )
               },
               shape: RoundedRectangleBorder(
