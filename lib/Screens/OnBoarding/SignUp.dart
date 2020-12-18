@@ -1,27 +1,37 @@
-import 'package:aluminia/Screens/OnBoarding/UserInfo.dart';
+import 'dart:io';
 import 'package:aluminia/Services/auth.dart';
 import 'package:aluminia/const.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class SignUp extends StatefulWidget {
   @override
   _SignUpState createState() => _SignUpState();
 }
 class _SignUpState extends State<SignUp> {
-
   double h,w;
   String email, ptemp, password, emailError = "", ptempError = "", passwordError = "";
+  String name, contact, gender, imageUrl, pickedDate, type;
   Auth auth = new Auth();
+  File _imageFile;
+  final picker = ImagePicker();
+  int _radiobtnvalue1 = -1, _radiobtnvalue2 = -1;
+  dynamic user;
+  bool loading = false;
 
   @override    
   Widget build(BuildContext context) {    
     h = MediaQuery.of(context).size.height;
     w = MediaQuery.of(context).size.width;
     return Scaffold( 
-      resizeToAvoidBottomPadding: false,
-      body: SingleChildScrollView(
+      body: loading ? SpinKitDoubleBounce(
+        color: blu,
+        size: 30.0,
+      ) : SingleChildScrollView(
         child: Column(
           children: [
             SizedBox(
@@ -35,8 +45,26 @@ class _SignUpState extends State<SignUp> {
                 )
               ),
             ),
+            Center(
+              child: Card(
+                color: Colors.white,
+                elevation: 5,
+                shadowColor: blu,
+                shape: CircleBorder(),
+                child: GestureDetector(
+                  onTap: () => {
+                    pickImage()
+                  },
+                  child: CircleAvatar(
+                    radius: 0.1 * h,
+                    backgroundColor: Colors.white,
+                    backgroundImage: _imageFile != null ? FileImage(_imageFile) : AssetImage('assets/images/add.png'),
+                  ),
+                ),
+              )
+            ),
             SizedBox(
-              height: 0.1 * h,
+              height: 0.05 * h,
             ),
             textInput("Email", false),
             Text(
@@ -47,13 +75,65 @@ class _SignUpState extends State<SignUp> {
               ptempError, style: TextStyle(fontSize: 12, color: Colors.red)
             ),
             textInput("Confirm Password", true),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                addRadio2(0, 'Student'),
+                addRadio2(1, 'Faculty'),
+                addRadio2(2, 'Alumini'),
+              ],
+            ),
             Text(
               passwordError, style: TextStyle(fontSize: 12, color: Colors.red)
             ),
-            SizedBox(
-              height: 0.1 * h,
+            textInput("Name", false),
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 0.1 * w, vertical: 0.015 * h),
+              decoration: new BoxDecoration(
+                boxShadow: [
+                  new BoxShadow(
+                    color: Colors.blue,
+                    blurRadius: 15.0,
+                    spreadRadius: -10
+                  ),
+                ],
+              ),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: ListTile(
+                    title: pickedDate == null ? Text("D.O.B",
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        color: Colors.grey
+                      ),
+                    ): Text(pickedDate,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                      ),
+                    ),
+                    trailing: Icon(Icons.keyboard_arrow_down),
+                    onTap: _pickDate,
+                  ),
+                ),
+              ),
             ),
-            RaisedButton(
+            textInput("Contact", false),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                addRadio1(0, 'Male'),
+                addRadio1(1, 'Female'),
+                addRadio1(2, 'Other'),
+              ],
+            ),
+            SizedBox(
+              height: 0.05 * h,
+            ),
+            FloatingActionButton(
               onPressed: () => {
                 print("press"),
                 if(email == null  || !EmailValidator.validate(email)) {
@@ -75,23 +155,31 @@ class _SignUpState extends State<SignUp> {
                     emailError = "";
                     ptempError = "";
                     passwordError = "";
+                    loading = true;
                   }),
-                  auth.createAccount(email, password).then((value) => Navigator.push(context, MaterialPageRoute(builder: (context) => UserInfo()))),
+                  user = {
+                    "user_name": email.split("@")[0],
+                    "Name": name,
+                    "Profile_Image_URL": imageUrl,
+                    "User_Type": type,
+                    "Gender": gender,
+                    "birthdate": pickedDate,
+                    "Mobile_Number": contact,
+                    "Email": email,
+                    "Password": password
+                  },
+                  auth.createAccount(context, user)
                 }
               },
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15)
+              backgroundColor: blu,
+              tooltip: "SignUp",
+              child: Icon(
+                Icons.keyboard_arrow_right,
+                size: 40,
               ),
-              color: blu,
-              elevation: 5,
-              child: Text(
-                "SignUp",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 24
-                ),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 0.1 * w, vertical: 0.01 * h),
+            ),
+            SizedBox(
+              height: 0.05 * h,
             )
           ],
         ),
@@ -137,11 +225,114 @@ class _SignUpState extends State<SignUp> {
                   this.ptemp = value;
                 if(hintText == "Confirm Password")
                   this.password = value;
+                if(hintText == "Name") 
+                  this.name = value;
+                if(hintText == "Contact")
+                  this.contact = value;
               });
             },
           ),
         ),
       ),
     );
+  }
+
+  Future pickImage() async {
+    final pickedFile = await picker.getImage(source: ImageSource.gallery);
+    setState(() {
+      _imageFile = File(pickedFile.path);
+    });
+    String imgUrl = await auth.uploadImage(_imageFile);
+    setState(() {
+      imageUrl = imgUrl;
+    });
+  }
+  _pickDate() async {
+   DateTime date = await showDatePicker(
+      context: context,
+      firstDate: DateTime(DateTime.now().year - 100),
+      lastDate: DateTime(DateTime.now().year+5),
+      initialDate: DateTime.now(),
+    );
+
+    if(date != null)
+      setState(() {
+        pickedDate = DateFormat('yyyy-MM-dd').format(date);
+      });
+  }
+  Row addRadio1(int btnValue, String title) {
+    return Row(
+    mainAxisAlignment: MainAxisAlignment.start,
+    children: <Widget>[
+      Radio(
+        activeColor: blu,
+        value: btnValue,
+        groupValue: _radiobtnvalue1,
+        onChanged: _handleradiobutton1,
+      ),
+      Text(title,
+        style: GoogleFonts.poppins(
+          fontSize: 16
+        ),
+      )
+    ],
+    );
+  }
+
+  void _handleradiobutton1(int value) {
+    setState(() {
+      _radiobtnvalue1 = value;
+      switch (value) {
+        case 0:
+          gender = "m";
+          break;
+        case 1:
+          gender = "f";
+          break;
+        case 2:
+          gender = 'o';
+          break;
+        default:
+          gender = null;
+      }
+    });
+  }
+
+  Row addRadio2(int btnValue, String title) {
+    return Row(
+    mainAxisAlignment: MainAxisAlignment.start,
+    children: <Widget>[
+      Radio(
+        activeColor: blu,
+        value: btnValue,
+        groupValue: _radiobtnvalue2,
+        onChanged: _handleradiobutton2,
+      ),
+      Text(title,
+        style: GoogleFonts.poppins(
+          fontSize: 16
+        ),
+      )
+    ],
+    );
+  }
+
+  void _handleradiobutton2(int value) {
+    setState(() {
+      _radiobtnvalue2 = value;
+      switch (value) {
+        case 0:
+          type = "Student";
+          break;
+        case 1:
+          type = "Faculty";
+          break;
+        case 2:
+          type = "Alumini";
+          break;
+        default:
+          gender = null;
+      }
+    });
   }
 }
